@@ -1,1 +1,2 @@
-import SepLib.Basic
+import SepLib.Heap
+import SepLib.HProp
