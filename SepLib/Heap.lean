@@ -10,6 +10,9 @@ namespace Heap
 
 def empty : Heap := ∅
 
+def singleton (l : Loc) (v : Val) : Heap :=
+  Finmap.singleton l v
+
 def union (h1 h2 : Heap) : Heap :=
   Finmap.union h1 h2
 
@@ -61,5 +64,18 @@ theorem disjoint_union_left {h1 h2 h3 : Heap} :
 theorem disjoint_union_right {h1 h2 h3 : Heap} :
     h1 ⊥ (h2 ⊔ h3) ↔ h1 ⊥ h2 ∧ h1 ⊥ h3 := by
   exact Finmap.disjoint_union_right h1 h2 h3
+
+theorem disjoint_singleton {l1 l2 : Loc} {v1 v2 : Val} :
+    (singleton l1 v1) ⊥ (singleton l2 v2) ↔ l1 ≠ l2 := by
+  constructor
+  · intro hdisj
+    unfold Disjoint at hdisj
+    by_contra hcontra
+    rw [hcontra] at hdisj
+    unfold Finmap.Disjoint singleton at hdisj
+    simp at hdisj
+  · intro hne
+    unfold Disjoint singleton Finmap.Disjoint
+    simp [hne]
 
 end Heap

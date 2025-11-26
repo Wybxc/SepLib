@@ -12,7 +12,7 @@ notation "⟦⟧" => emp
 def points_to (l : Loc) (v : Val) : HProp :=
   fun h => h = Finmap.singleton l v
 
-infix:55 " ↦ " => points_to
+infix:70 " ↦ " => points_to
 
 def star (P Q : HProp) : HProp :=
   fun h => ∃ (h1 h2 : Heap),
@@ -21,7 +21,7 @@ def star (P Q : HProp) : HProp :=
             P h1 ∧
             Q h2
 
-infixl:70 " ∗* " => star
+infixl:60 " ∗* " => star
 
 def hexists {α : Sort*} (J : α → HProp) : HProp :=
   fun h => ∃ (x : α), J x h
@@ -55,6 +55,14 @@ theorem exists_intro {α : Sort*} (J : α → HProp) (x : α) (h : Heap) :
   intros
   exists x
 
+macro "star_exists" hs:term,+ : tactic =>
+  `(tactic| (exists $hs,*;
+             and_intros;
+             all_goals try simp;
+             all_goals try ac_rfl;
+             all_goals try (apply_rules [Heap.disjoint_empty]; done);
+             all_goals try (symm; apply_rules [Heap.disjoint_empty]; done)))
+
 @[simp]
 theorem star_exists {α : Sort*} {J : α → HProp} {H : HProp} :
     (∃ x, J x) ∗* H = ∃ x, (J x ∗* H) := by
@@ -65,8 +73,7 @@ theorem star_exists {α : Sort*} {J : α → HProp} {H : HProp} :
     exists x, h1, h2
   · intro hex
     rcases hex with ⟨x, h1, h2, rfl, d, j, hh⟩
-    exists h1, h2
-    and_intros <;> try trivial
+    star_exists h1, h2
     exists x
 
 @[simp]
@@ -88,8 +95,7 @@ theorem star_comm (P Q : HProp) :
   constructor
   all_goals {
     rintro ⟨h1, h2, rfl, d, hP, hQ⟩
-    exists h2, h1
-    and_intros <;> apply_rules [Heap.union_comm]
+    star_exists h2, h1; apply_rules [Heap.union_comm]
   }
 
 instance : Std.Commutative star := ⟨star_comm⟩
@@ -100,15 +106,13 @@ theorem star_assoc (P Q R : HProp) :
   constructor
   · rintro ⟨h1, h2, rfl, d1, ⟨h3, h4, rfl, d2, hP, hQ⟩, hR⟩
     obtain ⟨d3, d4⟩ := Heap.disjoint_union_left.mp d1
-    exists h3, (h4 ⊔ h2)
-    and_intros <;> try (first | assumption | ac_rfl)
+    star_exists h3, (h4 ⊔ h2)
     · apply Heap.disjoint_union_right.mpr
       trivial
     · exists h4, h2
   · rintro ⟨h1, h2, rfl, d1, hP, ⟨h3, h4, rfl, d2, hQ, hR⟩⟩
     obtain ⟨d3, d4⟩ := Heap.disjoint_union_right.mp d1
-    exists (h1 ⊔ h3), h4
-    and_intros <;> try (first | assumption | ac_rfl)
+    star_exists (h1 ⊔ h3), h4
     · apply Heap.disjoint_union_left.mpr
       trivial
     · exists h1, h3
@@ -134,11 +138,8 @@ theorem star_pure_left {P : Prop} {H : HProp} {h : Heap} :
     rw [Heap.empty_union]
     trivial
   · rintro ⟨hP, hH⟩
-    exists ∅, h
-    and_intros <;> try simp
-    any_goals assumption
-    · exact Heap.disjoint_empty h
-    · exists hP
+    star_exists ∅, h
+    exists hP
 
 @[simp]
 theorem pure_true_eq_emp :
